@@ -13,7 +13,7 @@ def process_image(image):
     sq_img = grey_img[:min(grey_img.shape), :min(grey_img.shape)]
     sm_img = cv2.resize(sq_img, dsize=(1000,1000))
     cut_img = sm_img.copy()
-    cut_img[cut_img<200] = 0
+    cut_img[cut_img<100] = 0
     _, bi_img = cv2.threshold(cut_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     return bi_img
 
