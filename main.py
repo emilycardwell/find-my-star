@@ -8,17 +8,17 @@ from scipy.spatial import KDTree
 ### FUNCTIONS ###
 
 
-def process_image(image):
+def process_image(image, cutoff=225):
     grey_img = cv2.imread(image, flags=cv2.IMREAD_GRAYSCALE)
     sq_img = grey_img[:min(grey_img.shape), :min(grey_img.shape)]
     sm_img = cv2.resize(sq_img, dsize=(1000,1000))
     cut_img = sm_img.copy()
-    cut_img[cut_img<100] = 0
+    cut_img[cut_img<cutoff] = 0
     _, bi_img = cv2.threshold(cut_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     return bi_img
 
 
-def get_centroids(contours):
+def get_test_centroids(contours):
     contours = [[[pt[0][0] for pt in cont],[pt[0][1] for pt in cont]] for cont in contours]
 
     centroids = []
@@ -88,22 +88,23 @@ def check_areas(center_star, outer_stars):
 def get_distance(p1, p2):
 	return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
-def get_triangulators(stars, star_tree):
+
+def get_triangulators(centroids):
+    star_tree = KDTree(centroids, )
     triangles = []
     central_stars = []
-    for star in stars:
-        _, center_idx = star_tree.query(star, k=1)
-        center_star = stars[center_idx]
-
-        _, central_idxs = star_tree.query(star, k=70)
-        outer_stars = [stars[i] for i in central_idxs[1:]]
+    for centroid in centroids:
+        _, central_idxs = star_tree.query(centroid, k=50)
+        center_star = centroids[central_idxs[0]]
+        outer_stars = [centroids[i] for i in central_idxs[1:]]
 
         emcomp_tri = check_areas(center_star, outer_stars)
         if emcomp_tri:
             triangles.append(emcomp_tri)
-            central_stars.append(star)
+            central_stars.append(centroid)
 
     return triangles, central_stars
+
 
 
 def get_angles(triangles, central_stars):
@@ -123,24 +124,33 @@ def get_angles(triangles, central_stars):
         angle2 = math.acos((BP**2 + CP**2 - BC**2) / (2 * BP * CP)) * 180 / math.pi
         angle3 = math.acos((CP**2 + AP**2 - AC**2) / (2 * CP * AP)) * 180 / math.pi
 
-        angle_sum = sum([angle1, angle2, angle3])
-        if 360 - angle_sum > 1e-9:
-            print('error', angle_sum)
+        inner = sorted([angle1, angle2, angle3])
 
-        angles.append([angle1, angle2, angle3])
+        angle4 = math.acos((AB**2 + AP**2 - BP**2) / (2 * AB * AP)) * 180 / math.pi
+        try:
+            angle5 = math.acos((AB**2 + BP**2 - AP**2) / (2 * AB * BP)) * 180 / math.pi
+        except ValueError:
+            angle5 = 0
+        angle6 = math.acos((BC**2 + BP**2 - CP**2) / (2 * BC * BP)) * 180 / math.pi
+        angle7 = math.acos((BC**2 + CP**2 - BP**2) / (2 * BC * CP)) * 180 / math.pi
+        angle8 = math.acos((AC**2 + AP**2 - CP**2) / (2 * AC * AP)) * 180 / math.pi
+        angle9 = math.acos((AC**2 + CP**2 - AP**2) / (2 * AC * CP)) * 180 / math.pi
+
+        outer = sorted([angle4, angle5, angle6, angle7, angle8, angle9])
+
+        angles.append(inner + outer)
 
     return angles
 
 
-### MAIN ###
+# ### MAIN ###
 
 
 def main(img):
     proc_img = process_image(img)
     contours, _ = cv2.findContours(proc_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    centroids = get_centroids(contours)
-    star_tree = KDTree(centroids, )
-    triangles, central_stars = get_triangulators(centroids, star_tree)
+    centroids = get_test_centroids(contours)
+    triangles, central_stars = get_triangulators(centroids)
     angles = get_angles(triangles, central_stars)
     return central_stars, triangles, angles
 
