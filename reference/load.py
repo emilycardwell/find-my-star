@@ -3,7 +3,7 @@ from skyfield.data import hipparcos, stellarium
 
 def stars(magnitude=7.0):
     # load star dataframe & limit magnitude
-    load = Loader('./reference')
+    load = Loader('./reference/data')
     with load.open(hipparcos.URL) as f:
         df = hipparcos.load_dataframe(f)
         bright_stars_df = df[df['magnitude'] <= magnitude]
@@ -18,7 +18,7 @@ def stars(magnitude=7.0):
 
 def planets():
     # load planets
-    load = Loader('./reference')
+    load = Loader('./reference/data')
     planets = load('de421.bsp')
 
     # validate
@@ -30,7 +30,7 @@ def planets():
     return planets
 
 def constellations():
-    with load.open('./reference/constellationship.fab') as f:
+    with load.open('./reference/data/constellationship.fab') as f:
         constellations = stellarium.parse_constellations(f)
 
     return constellations
