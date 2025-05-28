@@ -1,5 +1,7 @@
-from skyfield.api import Loader, load
-from skyfield.data import hipparcos, stellarium
+import json
+import pandas as pd
+from skyfield.api import Loader
+from skyfield.data import hipparcos
 
 def stars(magnitude=7.0):
     # load star dataframe & limit magnitude
@@ -30,7 +32,26 @@ def planets():
     return planets
 
 def constellations():
-    with load.open('./reference/data/constellationship.fab') as f:
-        constellations = stellarium.parse_constellations(f)
+    # load constellation data
+    load = Loader('./reference/data')
+    url = 'https://raw.githubusercontent.com/Stellarium/stellarium/refs/heads/master/skycultures/modern_st/index.json'
 
-    return constellations
+    with load.open(url, filename='constellations.json') as f:
+        data = json.load(f)
+        const_data = data['constellations']
+
+        names = []
+        stars = []
+        for const in const_data:
+            names.append(const['common_name']['native'])
+            stars.append(const['lines'])
+
+        const_df = pd.DataFrame({
+            'name': names,
+            'stars': stars
+        })
+
+    if const_df.empty:
+        raise ValueError("Constellation data not loaded or is empty.")
+
+    return const_df
