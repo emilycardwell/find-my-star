@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+from collections import defaultdict
 from skyfield.api import Loader
 from skyfield.data import hipparcos
 
@@ -40,18 +41,9 @@ def constellations():
         data = json.load(f)
         const_data = data['constellations']
 
-        names = []
-        stars = []
-        for const in const_data:
-            names.append(const['common_name']['native'])
-            stars.append(const['lines'])
+        const_dict = {const['common_name']['native']: const['lines'] for const in const_data}
 
-        const_df = pd.DataFrame({
-            'name': names,
-            'stars': stars
-        })
-
-    if const_df.empty:
+    if len(const_dict) == 0 or len(const_dict['Andromeda']) == 0:
         raise ValueError("Constellation data not loaded or is empty.")
 
-    return const_df
+    return const_dict
